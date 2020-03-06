@@ -1022,6 +1022,7 @@ static void CheckZNodesOverflow(int *size, int count)
   }
 }
 
+// MB 2020-03-01: Fix endianess for 32-bit ZDoom nodes
 static void P_LoadZSegs (const byte *data)
 {
   int i;
@@ -1035,8 +1036,8 @@ static void P_LoadZSegs (const byte *data)
     seg_t *li = segs+i;
     const mapseg_znod_t *ml = (const mapseg_znod_t *) data + i;
 
-    v1 = ml->v1;
-    v2 = ml->v2;
+    v1 = LittleLong(ml->v1);
+    v2 = LittleLong(ml->v2);
 
     li->miniseg = false;
 
@@ -1096,6 +1097,8 @@ static void P_LoadZSegs (const byte *data)
   }
 }
 
+// MB 2020-03-01: Fix endianess for 32-bit ZDoom nodes
+// https://zdoom.org/wiki/Node#ZDoom_extended_nodes
 static void P_LoadZNodes(int lump, int glnodes)
 {
   const byte *data;
@@ -1110,18 +1113,18 @@ static void P_LoadZNodes(int lump, int glnodes)
 
   data = W_CacheLumpNum(lump);
   len =  W_LumpLength(lump);
-  
+
   // skip header
   CheckZNodesOverflow(&len, 4);
   data += 4;
 
   // Read extra vertices added during node building
   CheckZNodesOverflow(&len, sizeof(orgVerts));
-  orgVerts = *((const unsigned int*)data);
+  orgVerts = LittleLong(*((const unsigned int*)data));
   data += sizeof(orgVerts);
 
   CheckZNodesOverflow(&len, sizeof(newVerts));
-  newVerts = *((const unsigned int*)data);
+  newVerts = LittleLong(*((const unsigned int*)data));
   data += sizeof(newVerts);
 
   if (!samelevel)
@@ -1139,10 +1142,10 @@ static void P_LoadZNodes(int lump, int glnodes)
     CheckZNodesOverflow(&len, newVerts * (sizeof(newvertarray[0].x) + sizeof(newvertarray[0].y)));
     for (i = 0; i < newVerts; i++)
     {
-      newvertarray[i + orgVerts].x = *((const unsigned int*)data);
+      newvertarray[i + orgVerts].x = LittleLong(*((const unsigned int*)data));
       data += sizeof(newvertarray[0].x);
 
-      newvertarray[i + orgVerts].y = *((const unsigned int*)data);
+      newvertarray[i + orgVerts].y = LittleLong(*((const unsigned int*)data));
       data += sizeof(newvertarray[0].y);
     }
 
@@ -1170,7 +1173,7 @@ static void P_LoadZNodes(int lump, int glnodes)
 
   // Read the subsectors
   CheckZNodesOverflow(&len, sizeof(numSubs));
-  numSubs = *((const unsigned int*)data);
+  numSubs = LittleLong(*((const unsigned int*)data));
   data += sizeof(numSubs);
 
   numsubsectors = numSubs;
@@ -1179,19 +1182,23 @@ static void P_LoadZNodes(int lump, int glnodes)
   subsectors = calloc_IfSameLevel(subsectors, numsubsectors, sizeof(subsector_t));
 
   CheckZNodesOverflow(&len, numSubs * sizeof(mapsubsector_znod_t));
+  // MB 2020-03-01
+  // First segment number of each subsector is not stored
+  // First subsector starts at segment 0
+  // Subsequent subsectors starts with the next unused segment number (currSeg)
   for (i = currSeg = 0; i < numSubs; i++)
   {
     const mapsubsector_znod_t *mseg = (const mapsubsector_znod_t *) data + i;
 
     subsectors[i].firstline = currSeg;
-    subsectors[i].numlines = mseg->numsegs;
-    currSeg += mseg->numsegs;
+    subsectors[i].numlines = LittleLong(mseg->numsegs);
+    currSeg += LittleLong(mseg->numsegs);
   }
   data += numSubs * sizeof(mapsubsector_znod_t);
 
   // Read the segs
   CheckZNodesOverflow(&len, sizeof(numSegs));
-  numSegs = *((const unsigned int*)data);
+  numSegs = LittleLong(*((const unsigned int*)data));
   data += sizeof(numSegs);
 
   // The number of segs stored should match the number of
@@ -1218,7 +1225,7 @@ static void P_LoadZNodes(int lump, int glnodes)
 
   // Read nodes
   CheckZNodesOverflow(&len, sizeof(numNodes));
-  numNodes = *((const unsigned int*)data);
+  numNodes = LittleLong(*((const unsigned int*)data));
   data += sizeof(numNodes);
 
   numnodes = numNodes;
@@ -1238,7 +1245,7 @@ static void P_LoadZNodes(int lump, int glnodes)
 
     for (j = 0; j < 2; j++)
     {
-      no->children[j] = (unsigned int)(mn->children[j]);
+      no->children[j] = LittleLong(mn->children[j]);
 
       for (k = 0; k < 4; k++)
         no->bbox[j][k] = LittleShort(mn->bbox[j][k])<<FRACBITS;
