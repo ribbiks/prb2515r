@@ -291,6 +291,7 @@ void M_ExtHelp(int);
 static int M_GetPixelWidth(const char*);
 void M_DrawKeybnd(void);
 void M_DrawWeapons(void);
+static void M_DrawString(int cx, int cy, int color, const char* ch);
 static void M_DrawMenuString(int,int,int);
 static void M_DrawStringCentered(int,int,int,const char*);
 void M_DrawStatusHUD(void);
@@ -1787,6 +1788,22 @@ char* chat_string_buffer; // points to new chat strings while editing
 
 char ResetButtonName[2][8] = {"M_BUTT1","M_BUTT2"};
 
+static const char *CurrentMenuItemMarker = "*";
+
+static void M_DrawCurrentMenuItemMarker(const setup_menu_t* s)
+{
+  int x = s->m_x;
+  int y = s->m_y;
+  int flags = s->m_flags;
+  int color = 
+    flags & S_DISABLE ? CR_DISABLE : //e6y
+    flags & S_SELECT ? CR_SELECT :
+    flags & S_HILITE ? CR_HILITE :
+    flags & (S_TITLE|S_NEXT|S_PREV) ? CR_TITLE : CR_ITEM; // killough 10/98
+  int w = M_GetPixelWidth(CurrentMenuItemMarker);
+  M_DrawString(x - w - 1, y, color, CurrentMenuItemMarker);
+}
+
 /////////////////////////////
 //
 // phares 4/18/98:
@@ -1832,7 +1849,7 @@ static void M_DrawItem(const setup_menu_t* s)
       {      /* killough 10/98: support left-justification: */
   strcpy(menu_buffer,p);
   if (!(flags & S_LEFTJUST))
-    w = M_GetPixelWidth(menu_buffer) + 4;
+    w = M_GetPixelWidth(menu_buffer) + M_GetPixelWidth(CurrentMenuItemMarker) + 2;
   M_DrawMenuString(x - w, y ,color);
       }
     free(t);
@@ -2074,6 +2091,13 @@ static void M_DrawScreenItems(const setup_menu_t* src)
 
     if (src->m_flags & S_SHOWDESC)
       M_DrawItem(src);
+
+    if(!(src->m_flags & S_RESET) &&
+      src == current_setup_menu + set_menu_itemon &&
+      whichSkull && !setup_select
+    ){
+      M_DrawCurrentMenuItemMarker(src);
+    }
 
     // See if we're to draw the setting (right-hand part)
 
