@@ -466,7 +466,6 @@ fixed_t P_FindNextHighestFloor(sector_t *sec, int currentheight)
       // as part of a loop, heightlist will be at the same location as in
       // the previous call. Doing it this way fixes 1_ON_1.WAD.
       return (compatibility_level < doom_1666_compatibility ? last_height_0 : currentheight);
-      //return (compatibility_level < doom_1666_compatibility ? 0 : currentheight);
     }
     
     last_height_0 = heightlist[0];
