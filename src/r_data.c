@@ -444,11 +444,7 @@ void R_InitTranMap(int progress)
 
       // Use cached translucency filter if it's available
 
-      if (!cachefp ||
-          fread(&cache, 1, sizeof cache, cachefp) != sizeof cache ||
-          cache.pct != tran_filter_pct ||
-          memcmp(cache.playpal, playpal, sizeof cache.playpal) ||
-          fread(my_tranmap, 256, 256, cachefp) != 256 ) // killough 4/11/98
+      if (true)
         {
           long pal[3][256], tot[256], pal_w1[3][256];
           long w1 = ((unsigned long) tran_filter_pct<<TSC)/100;
