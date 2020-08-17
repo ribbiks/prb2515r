@@ -53,6 +53,7 @@ typedef struct musinfo_s
   int tics;
   int current_item;
   int items[MAX_MUS_ENTRIES];
+  int loaded_from_save;
 } musinfo_t;
 
 extern musinfo_t musinfo;

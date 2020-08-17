@@ -59,6 +59,8 @@ musinfo_t musinfo;
 //
 void S_ParseMusInfo(const char *mapid)
 {
+  musinfo.loaded_from_save = 0;
+  
   if (W_CheckNumForName("MUSINFO") != -1)
   {
     int num, lumpnum;

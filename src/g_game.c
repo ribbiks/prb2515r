@@ -2059,6 +2059,18 @@ void G_DoLoadGame(void)
   // between the updated and original pointer onto the original
   save_p += (G_ReadOptions(save_p) - save_p);
 
+  // briefly skip ahead in the savegame to grab musinfo.
+  int delta_save_p = save_p - savebuffer;
+  save_p += length - delta_save_p - 1;
+  if (*save_p == 0xe7)
+  {
+    short *getmi = (short *)(save_p - sizeof(short));
+    musinfo.current_item = *getmi++;
+    if (musinfo.current_item > 0)
+      musinfo.loaded_from_save = 1;
+  }
+  save_p -= length - delta_save_p - 1;
+
   // load a base level
   G_InitNew (gameskill, gameepisode, gamemap);
 
@@ -2086,7 +2098,7 @@ void G_DoLoadGame(void)
   R_ActivateSectorInterpolations();//e6y
   R_SmoothPlaying_Reset(NULL); // e6y
 
-  if (musinfo.current_item != -1)
+  if (musinfo.current_item > 0)
   {
     S_ChangeMusInfoMusic(musinfo.current_item, true);
   }
@@ -2311,6 +2323,12 @@ static void G_DoSaveGame (dboolean menu)
   P_ArchiveMap();    // killough 1/22/98: save automap information
 
   *save_p++ = 0xe6;   // consistancy marker
+
+  // tack on musinfo + extra footer, for new savegame format
+  short *putmi = (short *)save_p;
+  *putmi++ = musinfo.current_item;
+  save_p = (byte *) putmi;
+  *save_p++ = 0xe7;
 
   Z_CheckHeap();
   doom_printf( "%s", M_WriteFile(name, savebuffer, save_p - savebuffer)

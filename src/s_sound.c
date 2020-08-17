@@ -216,6 +216,27 @@ void S_Start(void)
           mnum = spmus[gamemap-1];
       }
 
+  // if midi from musinfo is currently playing, skip initialization
+  if (mus_playing && musinfo.current_item > 0 && musinfo.loaded_from_save == 1)
+  {
+    S_ChangeMusInfoMusic(musinfo.current_item, true);
+    if (mus_playing->lumpnum == musinfo.current_item)
+    {
+      memset(&musinfo, 0, sizeof(musinfo));
+      musicinfo_t *music;
+      music = &S_music[mnum];
+      // get lumpnum if neccessary
+      if (!music->lumpnum)
+        {
+          char namebuf[9];
+          sprintf(namebuf, "d_%s", music->name);
+          music->lumpnum = W_GetNumForName(namebuf);
+        }
+      musinfo.items[0] = music->lumpnum;
+      return;
+    }
+  }
+
   memset(&musinfo, 0, sizeof(musinfo));
   musinfo.items[0] = -1;
 
