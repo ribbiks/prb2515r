@@ -811,6 +811,7 @@ static void cht_InitCheats(void)
     boom_cheat_route[boom_201_compatibility] = 1;
     boom_cheat_route[boom_202_compatibility] = 1;
     boom_cheat_route[mbf_compatibility] = 1;
+    boom_cheat_route[boom_but_better_compatibility] = 1;
 
     for (cht = cheat; cht->cheat; cht++)
     {

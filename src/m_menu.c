@@ -3140,6 +3140,7 @@ static const char *gen_compstrings[] =
   "PrBoom 2.2.x",
   "PrBoom 2.3.x",
   "PrBoom 2.4.0",
+  "Better Boom",
   "Latest PrBoom+",
   NULL
 };

@@ -948,7 +948,7 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
     }
 
   // killough 9/7/98: keep track of targets so that friends can help friends
-  if (mbf_features)
+  if (mbf_features && compatibility_level != boom_but_better_compatibility)
     {
       /* If target is a player, set player's target to source,
        * so that a friend can tell who's hurting a player
@@ -974,7 +974,7 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 
   if (P_Random (pr_painchance) < target->info->painchance &&
       !(target->flags & MF_SKULLFLY)) { //killough 11/98: see below
-    if (mbf_features)
+    if (mbf_features && compatibility_level != boom_but_better_compatibility)
       justhit = true;
     else
       target->flags |= MF_JUSTHIT;    // fight back!
@@ -994,12 +994,11 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 
   /* killough 9/9/98: cleaned up, made more consistent: */
   //e6y: Monsters could commit suicide in Doom v1.2 if they damaged themselves by exploding a barrel
-  if (source && (source != target || compatibility_level == doom_12_compatibility) &&
+  if (source &&
+      (source != target || compatibility_level == doom_12_compatibility) &&
       source->type != MT_VILE &&
       (!target->threshold || target->type == MT_VILE) &&
-      ((source->flags ^ target->flags) & MF_FRIEND ||
-       monster_infighting ||
-       !mbf_features))
+      ((source->flags ^ target->flags) & MF_FRIEND || monster_infighting || !mbf_features || compatibility_level == boom_but_better_compatibility))
     {
       /* if not intent on another player, chase after this one
        *
@@ -1009,11 +1008,8 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
        */
 
       if (!target->lastenemy || target->lastenemy->health <= 0 ||
-    (!mbf_features ?
-     !target->lastenemy->player :
-     !((target->flags ^ target->lastenemy->flags) & MF_FRIEND) &&
-     target->target != source)) // remember last enemy - killough
-  P_SetTarget(&target->lastenemy, target->target);
+          (!mbf_features || compatibility_level == boom_but_better_compatibility ? !target->lastenemy->player : !((target->flags ^ target->lastenemy->flags) & MF_FRIEND) && target->target != source)) // remember last enemy - killough
+        P_SetTarget(&target->lastenemy, target->target);
 
       P_SetTarget(&target->target, source);       // killough 11/98
       target->threshold = BASETHRESHOLD;
@@ -1024,7 +1020,7 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
 
   /* killough 11/98: Don't attack a friend, unless hit by that friend.
    * cph 2006/04/01 - implicitly this is only if mbf_features */
-  if(!demo_compatibility) //e6y
+  if(!demo_compatibility && mbf_features && compatibility_level != boom_but_better_compatibility) //e6y
   if (justhit && (target->target == source || !target->target ||
       !(target->flags & target->target->flags & MF_FRIEND)))
     target->flags |= MF_JUSTHIT;    // fight back!

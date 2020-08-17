@@ -415,7 +415,7 @@ static dboolean P_Move(mobj_t *actor, dboolean dropoff) /* killough 9/12/98 */
        * MBF plays even more games
        */
       if (!good || comp[comp_doorstuck]) return good;
-      if (!mbf_features)
+      if (!mbf_features || compatibility_level == boom_but_better_compatibility)
   return (P_Random(pr_trywalk)&3); /* jff 8/13/98 */
       else /* finally, MBF code */
   return ((P_Random(pr_opendoor) >= 230) ^ (good & 1));
@@ -659,7 +659,7 @@ static void P_NewChaseDir(mobj_t *actor)
 
   actor->strafecount = 0;
 
-  if (mbf_features) {
+  if (mbf_features && compatibility_level != boom_but_better_compatibility) {
     if (actor->floorz - actor->dropoffz > FRACUNIT*24 &&
   actor->z <= actor->floorz &&
   !(actor->flags & (MF_DROPOFF|MF_FLOAT)) &&
@@ -845,7 +845,7 @@ static dboolean P_LookForPlayers(mobj_t *actor, dboolean allaround)
         // There are no more desyncs on Donce's demos on horror.wad
 
         // Use last known enemy if no players sighted -- killough 2/15/98:
-        if (!mbf_features && !demo_compatibility && monsters_remember)
+        if ((!mbf_features || compatibility_level == boom_but_better_compatibility) && !demo_compatibility && monsters_remember)
         {
           if (actor->lastenemy && actor->lastenemy->health > 0)
           {
@@ -874,8 +874,8 @@ static dboolean P_LookForPlayers(mobj_t *actor, dboolean allaround)
       /* killough 9/9/98: give monsters a threshold towards getting players
        * (we don't want it to be too easy for a player with dogs :)
        */
-      if (!comp[comp_pursuit])
-  actor->threshold = 60;
+      if (!comp[comp_pursuit] && compatibility_level != boom_but_better_compatibility)
+        actor->threshold = 60;
 
       return true;
     }
@@ -1206,11 +1206,11 @@ void A_Chase(mobj_t *actor)
         }
 
   if (!actor->threshold) {
-    if (!mbf_features)
+    //lprintf(LO_ERROR, "%i %i %i\n", compatibility_level, actor->threshold, actor->pursuecount);
+    if (!mbf_features || compatibility_level == boom_but_better_compatibility)
       {   /* killough 9/9/98: for backward demo compatibility */
-  if (netgame && !P_CheckSight(actor, actor->target) &&
-      P_LookForPlayers(actor, true))
-    return;
+        if (netgame && !P_CheckSight(actor, actor->target) && P_LookForPlayers(actor, true))
+          return;
       }
     /* killough 7/18/98, 9/9/98: new monster AI */
     else if (help_friends && P_HelpFriend(actor))
@@ -1218,36 +1218,35 @@ void A_Chase(mobj_t *actor)
     /* Look for new targets if current one is bad or is out of view */
     else if (actor->pursuecount)
       actor->pursuecount--;
-    else {
-  /* Our pursuit time has expired. We're going to think about
-   * changing targets */
-  actor->pursuecount = BASETHRESHOLD;
+    else
+    {
+      /* Our pursuit time has expired. We're going to think about
+       * changing targets */
+      actor->pursuecount = BASETHRESHOLD;
 
-  /* Unless (we have a live target
-   *         and it's not friendly
-   *         and we can see it)
-   *  try to find a new one; return if sucessful */
+      /* Unless (we have a live target
+       *         and it's not friendly
+       *         and we can see it)
+       *  try to find a new one; return if sucessful */
 
-  if (!(actor->target && actor->target->health > 0 &&
-        ((comp[comp_pursuit] && !netgame) ||
-         (((actor->target->flags ^ actor->flags) & MF_FRIEND ||
-     (!(actor->flags & MF_FRIEND) && monster_infighting)) &&
-    P_CheckSight(actor, actor->target))))
-      && P_LookForTargets(actor, true))
-        return;
+      if (!(actor->target && actor->target->health > 0 && ((comp[comp_pursuit] && !netgame) ||
+          (((actor->target->flags ^ actor->flags) & MF_FRIEND ||
+          (!(actor->flags & MF_FRIEND) && monster_infighting)) && P_CheckSight(actor, actor->target)))) && P_LookForTargets(actor, true))
+            return;
 
-  /* (Current target was good, or no new target was found.)
-   *
-   * If monster is a missile-less friend, give up pursuit and
-   * return to player, if no attacks have occurred recently.
-   */
+      /* (Current target was good, or no new target was found.)
+       *
+       * If monster is a missile-less friend, give up pursuit and
+       * return to player, if no attacks have occurred recently.
+       */
 
-  if (!actor->info->missilestate && actor->flags & MF_FRIEND) {
-    if (actor->flags & MF_JUSTHIT)          /* if recent action, */
-      actor->flags &= ~MF_JUSTHIT;          /* keep fighting */
-    else if (P_LookForPlayers(actor, true)) /* else return to player */
-      return;
-  }
+      if (!actor->info->missilestate && actor->flags & MF_FRIEND)
+      {
+        if (actor->flags & MF_JUSTHIT)          /* if recent action, */
+          actor->flags &= ~MF_JUSTHIT;          /* keep fighting */
+        else if (P_LookForPlayers(actor, true)) /* else return to player */
+          return;
+      }
     }
   }
 
@@ -1729,7 +1728,7 @@ void A_VileChase(mobj_t* actor)
                   corpsehit->health = info->spawnhealth;
       P_SetTarget(&corpsehit->target, NULL);  // killough 11/98
 
-      if (mbf_features)
+      if (mbf_features && compatibility_level != boom_but_better_compatibility)
         {         /* kilough 9/9/98 */
           P_SetTarget(&corpsehit->lastenemy, NULL);
           corpsehit->flags &= ~MF_JUSTHIT;

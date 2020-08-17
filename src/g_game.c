@@ -1860,12 +1860,12 @@ const char * comp_lev_str[MAX_COMPATIBILITY_LEVEL] =
 { "Doom v1.2", "Doom v1.666", "Doom/Doom2 v1.9", "Ultimate Doom/Doom95", "Final Doom",
   "early DosDoom", "TASDoom", "\"boom compatibility\"", "boom v2.01", "boom v2.02", "lxdoom v1.3.2+",
   "MBF", "PrBoom 2.03beta", "PrBoom v2.1.0-2.1.1", "PrBoom v2.1.2-v2.2.6",
-  "PrBoom v2.3.x", "PrBoom 2.4.0", "Current PrBoom"  };
+  "PrBoom v2.3.x", "PrBoom 2.4.0", "PrBoom 2.5.1.5", "better boom"  };
 
 // comp_options_by_version removed - see G_Compatibility
 
 static byte map_old_comp_levels[] =
-{ 0, 1, 2, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+{ 0, 1, 2, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
 
 static const struct {
   int comp_level;
@@ -1876,7 +1876,8 @@ static const struct {
    *  the file format is unchanged. */
   { prboom_3_compatibility, "PrBoom %d", 210},
   { prboom_5_compatibility, "PrBoom %d", 211},
-  { prboom_6_compatibility, "PrBoom %d", 212}
+  { prboom_6_compatibility, "PrBoom %d", 212},
+  { boom_but_better_compatibility, "PrBoom %d", 215}
   //e6y
   ,{ doom_12_compatibility,  "PrBoom %d", 100}
   ,{ doom_1666_compatibility,"PrBoom %d", 101}
@@ -2112,7 +2113,7 @@ void G_DoLoadGame(void)
     I_Error ("G_DoLoadGame: Bad savegame");
 
   // preserve friction between save/reload
-  if (have_e7_footer > 0)
+  if (have_e7_footer > 0 && compatibility_level == boom_but_better_compatibility)
     P_SpawnFriction ();
 
   /* Print some information about the save game */
@@ -2450,6 +2451,8 @@ void G_Compatibility(void)
     { boom_compatibility_compatibility, prboom_6_compatibility },
     // comp_translucency - No predefined translucency for some things
     { boom_compatibility_compatibility, prboom_6_compatibility },
+    // comp_longtics - longtics optional while recording
+    { boom_but_better_compatibility, boom_but_better_compatibility },
   };
   unsigned int i;
 
@@ -2926,7 +2929,10 @@ byte *G_WriteOptions(byte *demo_p)
 
   *demo_p++ = allow_pushers;      // MT_PUSH Things
 
-  *demo_p++ = 0;
+  if (compatibility_level == boom_but_better_compatibility)
+    *demo_p++ = longtics;
+  else
+    *demo_p++ = 0;
 
   *demo_p++ = player_bobbing;  // whether player bobs or not
 
@@ -3014,6 +3020,8 @@ const byte *G_ReadOptions(const byte *demo_p)
   allow_pushers = *demo_p;      // MT_PUSH Things
   demo_p++;
 
+  if (compatibility_level == boom_but_better_compatibility)
+    longtics = *demo_p;
   demo_p++;
 
   player_bobbing = *demo_p;     // whether player bobs or not
@@ -3103,9 +3111,15 @@ void G_BeginRecording (void)
         case prboom_4_compatibility: v = 212; break;
         case prboom_5_compatibility: v = 213; break;
         case prboom_6_compatibility:
-				     v = 214; 
-				     longtics = 1;
-				     break;
+				  v = 214; 
+				  longtics = 1;
+				  break;
+        case boom_but_better_compatibility:
+          v = 215;
+          longtics = M_CheckParm("-longtics");
+          if (longtics)
+            longtics = 1;
+          break;
         default: I_Error("G_BeginRecording: PrBoom compatibility level unrecognised?");
       }
       *demo_p++ = v;
@@ -3427,7 +3441,7 @@ const byte* G_ReadDemoHeaderEx(const byte *demo_p, size_t size, unsigned int par
   // BOOM's demoversion starts from 200
   if (!((demover >=   0  && demover <=   4) ||
         (demover >= 104  && demover <= 111) ||
-        (demover >= 200  && demover <= 214)))
+        (demover >= 200  && demover <= 215)))
   {
     I_Error("G_ReadDemoHeader: Unknown demo format %d.", demover);
   }
@@ -3579,6 +3593,10 @@ const byte* G_ReadDemoHeaderEx(const byte *demo_p, size_t size, unsigned int par
         longtics = 1;
 	demo_p++;
 	break;
+      case 215:
+  compatibility_level = boom_but_better_compatibility;
+  demo_p++;
+  break;
       }
       //e6y: check for overrun
       if (CheckForOverrun(header_p, demo_p, size, 5, failonerror))
