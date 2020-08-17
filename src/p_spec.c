@@ -100,7 +100,7 @@ static size_t maxanims;
 // killough 3/7/98: Initialize generalized scrolling
 static void P_SpawnScrollers(void);
 
-static void P_SpawnFriction(void);    // phares 3/16/98
+//static void P_SpawnFriction(void);    // phares 3/16/98
 static void P_SpawnPushers(void);     // phares 3/20/98
 
 //e6y
@@ -3127,7 +3127,7 @@ void T_Friction(friction_t *f)
 //
 // Initialize the sectors where friction is increased or decreased
 
-static void P_SpawnFriction(void)
+void P_SpawnFriction(void)
 {
   int i;
   line_t *l = lines;

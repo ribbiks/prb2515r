@@ -70,6 +70,7 @@
 #include "r_main.h"
 #include "r_draw.h"
 #include "p_map.h"
+#include "p_spec.h"
 #include "s_sound.h"
 #include "s_advsound.h"
 #include "dstrings.h"
@@ -1958,6 +1959,7 @@ void G_DoLoadGame(void)
   unsigned int packageversion = 0;
   char maplump[8];
   int time, ttime;
+  int have_e7_footer = 0;
 
   length = G_SaveGameName(NULL, 0, savegameslot, demoplayback);
   name = malloc(length+1);
@@ -2064,6 +2066,7 @@ void G_DoLoadGame(void)
   save_p += length - delta_save_p - 1;
   if (*save_p == 0xe7)
   {
+    have_e7_footer = 1;
     short *getmi = (short *)(save_p - sizeof(short));
     musinfo.current_item = *getmi++;
     if (musinfo.current_item > 0)
@@ -2107,6 +2110,10 @@ void G_DoLoadGame(void)
 
   if (*save_p != 0xe6)
     I_Error ("G_DoLoadGame: Bad savegame");
+
+  // preserve friction between save/reload
+  if (have_e7_footer > 0)
+    P_SpawnFriction ();
 
   /* Print some information about the save game */
   if (gamemode == commercial)

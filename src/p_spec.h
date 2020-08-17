@@ -1161,4 +1161,8 @@ int P_ActivateInStasisCeiling
 
 mobj_t* P_GetPushThing(int);                                // phares 3/23/98
 
+// making these no longer static so they can be called after loadgame
+void P_SpawnFriction
+ ( void );
+
 #endif
