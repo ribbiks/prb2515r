@@ -449,9 +449,23 @@ dboolean PIT_CheckLine (line_t* ld)
   return tmunstuck && !untouched(ld);  // killough 8/1/98: allow escape
 
       // killough 8/9/98: monster-blockers don't affect friends
-      if (!(tmthing->flags & MF_FRIEND || tmthing->player)
-    && ld->flags & ML_BLOCKMONSTERS)
-  return false; // block monsters only
+      if (!(tmthing->flags & MF_FRIEND || tmthing->player) &&
+          ld->flags & ML_BLOCKMONSTERS)
+        return false; // block monsters only
+
+      int cl18_blocking = 0;
+      if (compatibility_level == boom_but_better_compatibility &&
+          !(tmthing->flags & MF_FLOAT) &&
+          ld->flags & ML_TWOSIDED &&
+          ld->tag == 9999)
+      {
+        int s1 = ld->frontsector->floorheight;
+        int s2 = ld->backsector->floorheight;
+        if (D_abs(s1 - s2) > FRACUNIT*24)
+          cl18_blocking = 1;
+      }
+      if (cl18_blocking > 0)
+        return false;
     }
 
   // set openrange, opentop, openbottom
@@ -1302,8 +1316,19 @@ dboolean PTR_SlideTraverse (intercept_t* in)
   if (opentop - slidemo->z < slidemo->height)
     goto isblocking;  // mobj is too high
 
-  if (openbottom - slidemo->z > 24*FRACUNIT )
+  if (openbottom - slidemo->z > 24*FRACUNIT)
     goto isblocking;  // too big a step up
+
+  //int cl18_blocking = 0;
+  //if (compatibility_level == boom_but_better_compatibility && li->flags & ML_TWOSIDED && li->tag == 9999)
+  //{
+  //  int s1 = li->frontsector->floorheight;
+  //  int s2 = li->backsector->floorheight;
+  //  if (D_abs(s1 - s2) > FRACUNIT*24)
+  //    cl18_blocking = 1;
+  //}
+  //if (cl18_blocking > 0)
+  //  goto isblocking;  // cl18 block-monster line
 
   // this line doesn't block movement
 
