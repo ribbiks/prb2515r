@@ -1391,6 +1391,12 @@ static dboolean MouseShouldBeGrabbed()
   //if (screensaver_mode)
   //    return false;
 
+#ifndef MACOSX
+  if (!mouse_enabled)
+    return false;
+  return true;
+#endif
+
   // if the window doesnt have focus, never grab it
   if (!window_focused)
     return false;
