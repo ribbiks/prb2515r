@@ -449,6 +449,10 @@ dboolean HasTrailingSlash(const char* dn)
  */
 
 #ifndef MACOSX /* OSX defines its search paths elsewhere. */
+//
+// For the record, this no longer evaluates as false for mac, but I'm
+// fine with the unix-flavored paths so I'm leaving it as is. -rbk
+//
 
 char* I_FindFileInternal(const char* wfname, const char* ext, dboolean isStatic)
 {

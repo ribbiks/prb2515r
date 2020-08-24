@@ -92,6 +92,7 @@ static SDL_Cursor* cursors[2] = {NULL, NULL};
 
 dboolean window_focused;
 int mouse_currently_grabbed = true;
+int ignored_first_mouse_input = 0;
 
 // Window resize state.
 static void ApplyWindowResize(SDL_Event *resize_event);
@@ -234,13 +235,14 @@ static void I_GetEvent(void)
   SDL_Event *Event = &SDLEvent;
 
   static int mwheeluptic = 0, mwheeldowntic = 0;
+  //lprintf(LO_ERROR, "gametic: %i \n", gametic);
 
 while (SDL_PollEvent(Event))
 {
   switch (Event->type) {
   case SDL_KEYDOWN:
-#ifdef MACOSX
-    if (Event->key.keysym.mod & KMOD_META)
+#if defined(__MACOSX__) || (defined(__GNUC__) && defined(__APPLE__))
+    if (Event->key.keysym.mod & KMOD_GUI)
     {
       // Switch windowed<->fullscreen if pressed <Command-F>
       if (Event->key.keysym.sym == SDLK_f)
@@ -321,7 +323,12 @@ while (SDL_PollEvent(Event))
       event.data1 = I_SDLtoDoomMouseState(Event->motion.state);
       event.data2 = Event->motion.xrel << 4;
       event.data3 = -Event->motion.yrel << 4;
-      D_PostEvent(&event);
+
+      //lprintf(LO_ERROR, "mouse movement: %i %i %i \n", event.data2, event.data3, ignored_first_mouse_input);
+      if (ignored_first_mouse_input == 0 && gametic > 1 && (D_abs(event.data2) || D_abs(event.data3)))
+        ignored_first_mouse_input = 1;
+      else if (ignored_first_mouse_input == 1)
+        D_PostEvent(&event);
     }
     break;
 
@@ -1174,7 +1181,7 @@ void I_UpdateVideoMode(void)
   // In windowed mode, the window can be resized while the game is
   // running.  This feature is disabled on OS X, as it adds an ugly
   // scroll handle to the corner of the screen.
-#ifndef MACOSX
+#if !defined(__MACOSX__) && !(defined(__GNUC__) && defined(__APPLE__))
   if (!desired_fullscreen)
     init_flags |= SDL_WINDOW_RESIZABLE;
 #endif
@@ -1391,10 +1398,10 @@ static dboolean MouseShouldBeGrabbed()
   //if (screensaver_mode)
   //    return false;
 
-#ifndef MACOSX
+#if defined(__MACOSX__) || (defined(__GNUC__) && defined(__APPLE__))
   if (!mouse_enabled)
     return false;
-  return true;
+  return (gamestate == GS_LEVEL) && !demoplayback;
 #endif
 
   // if the window doesnt have focus, never grab it
