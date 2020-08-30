@@ -135,6 +135,8 @@ int             gametic;
 int             basetic;       /* killough 9/29/98: for demo sync */
 int             totalkills, totallive, totalitems, totalsecret;    // for intermission
 int             show_alive;
+char           *demoname;
+const char     *orig_demoname; // [crispy] the name originally chosen for the demo, i.e. without "-00000"
 dboolean         demorecording;
 dboolean         demoplayback;
 dboolean         democontinue = false;
@@ -797,8 +799,8 @@ static void G_DoLoadLevel (void)
         break;
       }//jff 3/27/98 end sky setting fix
 
-	// [RH] Set up details about sky rendering
-	R_InitSkyMap ();
+  // [RH] Set up details about sky rendering
+  R_InitSkyMap ();
 
 #ifdef GL_DOOM
   R_SetBoxSkybox(skytexture);
@@ -1367,14 +1369,14 @@ static dboolean G_CheckSpot(int playernum, mapthing_t *mthing)
     {
       static int queuesize;
       if (queuesize < bodyquesize)
-	{
-	  bodyque = realloc(bodyque, bodyquesize*sizeof*bodyque);
-	  memset(bodyque+queuesize, 0,
-		 (bodyquesize-queuesize)*sizeof*bodyque);
-	  queuesize = bodyquesize;
-	}
+  {
+    bodyque = realloc(bodyque, bodyquesize*sizeof*bodyque);
+    memset(bodyque+queuesize, 0,
+     (bodyquesize-queuesize)*sizeof*bodyque);
+    queuesize = bodyquesize;
+  }
       if (bodyqueslot >= bodyquesize)
-	P_RemoveMobj(bodyque[bodyqueslot % bodyquesize]);
+  P_RemoveMobj(bodyque[bodyqueslot % bodyquesize]);
       bodyque[bodyqueslot++ % bodyquesize] = players[playernum].mo;
     }
   else
@@ -1398,23 +1400,23 @@ static dboolean G_CheckSpot(int playernum, mapthing_t *mthing)
     if (compatibility_level <= finaldoom_compatibility || compatibility_level == prboom_4_compatibility)
       switch (an) {
       case -4096: xa = finetangent[2048];   // finecosine[-4096]
-          	ya = finetangent[0];      // finesine[-4096]
-          	break;
+            ya = finetangent[0];      // finesine[-4096]
+            break;
       case -3072: xa = finetangent[3072];   // finecosine[-3072]
-          	ya = finetangent[1024];   // finesine[-3072]
-          	break;
+            ya = finetangent[1024];   // finesine[-3072]
+            break;
       case -2048: xa = finesine[0];   // finecosine[-2048]
-          	ya = finetangent[2048];   // finesine[-2048]
-          	break;
-      case -1024:	xa = finesine[1024];     // finecosine[-1024]
-          	ya = finetangent[3072];  // finesine[-1024]
-          	break;
+            ya = finetangent[2048];   // finesine[-2048]
+            break;
+      case -1024: xa = finesine[1024];     // finecosine[-1024]
+            ya = finetangent[3072];  // finesine[-1024]
+            break;
       case 1024:
       case 2048:
       case 3072:
       case 4096:
-      case 0:	break; /* correct angles set above */
-      default:	I_Error("G_CheckSpot: unexpected angle %d\n",an);
+      case 0: break; /* correct angles set above */
+      default:  I_Error("G_CheckSpot: unexpected angle %d\n",an);
       }
 
     mo = P_SpawnMobj(x+20*xa, y+20*ya, ss->sector->floorheight, MT_TFOG);
@@ -2372,6 +2374,17 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
   d_episode = episode;
   d_map = map;
   gameaction = ga_newgame;
+
+  // [crispy] if a new game is started during demo recording, start a new demo
+  if (demorecording)
+  {
+    // [crispy] reset IDDT cheat when re-starting map during demo recording
+    AM_ResetIDDTcheat();
+    AM_clearMarks();
+    G_CheckDemoStatus();
+    G_RecordDemo(orig_demoname);
+    G_BeginRecording();
+  }
 }
 
 /* cph -
@@ -2807,11 +2820,36 @@ void G_WriteDemoTiccmd (ticcmd_t* cmd)
 
 void G_RecordDemo (const char* name)
 {
-  char *demoname;
+  // [crispy] demo file name suffix counter
+  static unsigned int j = 0;
+  FILE *fp = NULL;
+  size_t demoname_size;
+  // [crispy] the name originally chosen for the demo, i.e. without "-00000"
+  if (!orig_demoname)
+  {
+    orig_demoname = name;
+  }
+
   usergame = false;
-  demoname = malloc(strlen(name)+4+1);
+  demoname_size = strlen(name) + 5 + 6; // [crispy] + 6 for "-00000"
+  demoname = malloc(demoname_size);
   AddDefaultExtension(strcpy(demoname, name), ".lmp");  // 1/18/98 killough
   demorecording = true;
+
+  char *demoname_nosuffix = malloc(strlen(demoname));
+  char *demoname_try = malloc(demoname_size);
+  strcpy(demoname_nosuffix, demoname);
+  demoname_nosuffix[strlen(demoname)-4] = '\0';
+  snprintf(demoname, demoname_size, "%s-00000.lmp", demoname_nosuffix);
+
+  // [crispy] prevent overriding demos by adding a file name suffix
+  for ( ; j <= 99999 && (fp = fopen(demoname, "rb")) != NULL; j++)
+  {
+    snprintf(demoname, demoname_size, "%s-%05d.lmp", demoname_nosuffix, j);
+    fclose (fp);
+  }
+
+  lprintf(LO_INFO, "Demo %s started...\n", demoname);
   
   /* cph - Record demos straight to file
   * If file already exists, try to continue existing demo
@@ -3111,9 +3149,9 @@ void G_BeginRecording (void)
         case prboom_4_compatibility: v = 212; break;
         case prboom_5_compatibility: v = 213; break;
         case prboom_6_compatibility:
-				  v = 214; 
-				  longtics = 1;
-				  break;
+          v = 214; 
+          longtics = 1;
+          break;
         case boom_but_better_compatibility:
           v = 215;
           longtics = M_CheckParm("-longtics");
@@ -3544,9 +3582,9 @@ const byte* G_ReadDemoHeaderEx(const byte *demo_p, size_t size, unsigned int par
           return NULL;
 
         if (!*demo_p++)
-	  compatibility_level = boom_201_compatibility;
+    compatibility_level = boom_201_compatibility;
         else
-	  compatibility_level = boom_compatibility_compatibility;
+    compatibility_level = boom_compatibility_compatibility;
         break;
       case 202:
         //e6y: check for overrun
@@ -3554,45 +3592,45 @@ const byte* G_ReadDemoHeaderEx(const byte *demo_p, size_t size, unsigned int par
           return NULL;
 
         if (!*demo_p++)
-	  compatibility_level = boom_202_compatibility;
+    compatibility_level = boom_202_compatibility;
         else
-	  compatibility_level = boom_compatibility_compatibility;
+    compatibility_level = boom_compatibility_compatibility;
         break;
       case 203:
-	/* LxDoom or MBF - determine from signature
-	 * cph - load compatibility level */
-	switch (*(header_p + 2)) {
-	case 'B': /* LxDoom */
-	  /* cph - DEMOSYNC - LxDoom demos recorded in compatibility modes support dropped */
-	  compatibility_level = lxdoom_1_compatibility;
-	  break;
-	case 'M':
-	  compatibility_level = mbf_compatibility;
-	  demo_p++;
-	  break;
-	}
-	break;
+  /* LxDoom or MBF - determine from signature
+   * cph - load compatibility level */
+  switch (*(header_p + 2)) {
+  case 'B': /* LxDoom */
+    /* cph - DEMOSYNC - LxDoom demos recorded in compatibility modes support dropped */
+    compatibility_level = lxdoom_1_compatibility;
+    break;
+  case 'M':
+    compatibility_level = mbf_compatibility;
+    demo_p++;
+    break;
+  }
+  break;
       case 210:
-	compatibility_level = prboom_2_compatibility;
-	demo_p++;
-	break;
+  compatibility_level = prboom_2_compatibility;
+  demo_p++;
+  break;
       case 211:
-	compatibility_level = prboom_3_compatibility;
-	demo_p++;
-	break;
+  compatibility_level = prboom_3_compatibility;
+  demo_p++;
+  break;
       case 212:
-	compatibility_level = prboom_4_compatibility;
-	demo_p++;
-	break;
+  compatibility_level = prboom_4_compatibility;
+  demo_p++;
+  break;
       case 213:
-	compatibility_level = prboom_5_compatibility;
-	demo_p++;
-	break;
+  compatibility_level = prboom_5_compatibility;
+  demo_p++;
+  break;
       case 214:
-	compatibility_level = prboom_6_compatibility;
+  compatibility_level = prboom_6_compatibility;
         longtics = 1;
-	demo_p++;
-	break;
+  demo_p++;
+  break;
       case 215:
   compatibility_level = boom_but_better_compatibility;
   demo_p++;

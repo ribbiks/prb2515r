@@ -373,10 +373,10 @@ int G_ReloadLevel(void)
 
   if ((gamestate == GS_LEVEL) &&
       !deathmatch && !netgame &&
-      !demorecording && !demoplayback &&
+      !demoplayback &&
       !menuactive)
   {
-    G_DeferedInitNew(gameskill, gameepisode, gamemap);
+    G_DeferedInitNew(gameskill, gameepisode, demorecording ? startmap : gamemap);
     result = true;
   }
 
