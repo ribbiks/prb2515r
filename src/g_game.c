@@ -135,6 +135,8 @@ int             gametic;
 int             basetic;       /* killough 9/29/98: for demo sync */
 int             totalkills, totallive, totalitems, totalsecret;    // for intermission
 int             show_alive;
+char           *demoname;
+const char     *orig_demoname; // [crispy] the name originally chosen for the demo, i.e. without "-00000"
 dboolean         demorecording;
 dboolean         demoplayback;
 dboolean         democontinue = false;
@@ -2372,6 +2374,16 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
   d_episode = episode;
   d_map = map;
   gameaction = ga_newgame;
+
+  // [crispy] if a new game is started during demo recording, start a new demo
+  if (demorecording)
+  {
+    // [crispy] reset IDDT cheat when re-starting map during demo recording
+    //AM_ResetIDDTcheat();
+    G_CheckDemoStatus();
+    G_RecordDemo(orig_demoname);
+    G_BeginRecording();
+  }
 }
 
 /* cph -
@@ -2807,11 +2819,36 @@ void G_WriteDemoTiccmd (ticcmd_t* cmd)
 
 void G_RecordDemo (const char* name)
 {
-  char *demoname;
+  // [crispy] demo file name suffix counter
+  static unsigned int j = 0;
+  FILE *fp = NULL;
+  size_t demoname_size;
+  // [crispy] the name originally chosen for the demo, i.e. without "-00000"
+  if (!orig_demoname)
+  {
+    orig_demoname = name;
+  }
+
   usergame = false;
-  demoname = malloc(strlen(name)+4+1);
+  demoname_size = strlen(name) + 5 + 6; // [crispy] + 6 for "-00000"
+  demoname = malloc(demoname_size);
   AddDefaultExtension(strcpy(demoname, name), ".lmp");  // 1/18/98 killough
   demorecording = true;
+
+  char *demoname_nosuffix = malloc(strlen(demoname));
+  char *demoname_try = malloc(demoname_size);
+  strcpy(demoname_nosuffix, demoname);
+  demoname_nosuffix[strlen(demoname)-4] = '\0';
+  snprintf(demoname, demoname_size, "%s-00000.lmp", demoname_nosuffix);
+
+  // [crispy] prevent overriding demos by adding a file name suffix
+  for ( ; j <= 99999 && (fp = fopen(demoname, "rb")) != NULL; j++)
+  {
+    snprintf(demoname, demoname_size, "%s-%05d.lmp", demoname_nosuffix, j);
+    fclose (fp);
+  }
+
+  lprintf(LO_INFO, "Demo %s started...\n", demoname);
   
   /* cph - Record demos straight to file
   * If file already exists, try to continue existing demo
@@ -3749,7 +3786,8 @@ dboolean G_CheckDemoStatus (void)
       //e6y
       G_WriteDemoFooter(demofp);
 
-      lprintf(LO_INFO, "G_CheckDemoStatus: Demo recorded\n");
+      //Z_Free (demofp);
+      lprintf(LO_INFO, "Demo recorded\n"); 
       return false;  // killough
     }
 
