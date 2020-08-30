@@ -373,11 +373,10 @@ int G_ReloadLevel(void)
 
   if ((gamestate == GS_LEVEL) &&
       !deathmatch && !netgame &&
-      !demoplayback &&
+      !demorecording && !demoplayback &&
       !menuactive)
   {
-    // [crispy] restart demos from the map they were started
-    G_DeferedInitNew(gameskill, gameepisode, demorecording ? startmap : gamemap);
+    G_DeferedInitNew(gameskill, gameepisode, gamemap);
     result = true;
   }
 
