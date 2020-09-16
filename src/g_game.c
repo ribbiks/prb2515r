@@ -1196,7 +1196,7 @@ void G_Ticker (void)
   // e6y
   // do nothing if a pause has been pressed during playback
   // pausing during intermission can cause desynchs without that
-  if (paused & 2 && gamestate != GS_LEVEL)
+  if ((paused & 2 || (!demoplayback && menuactive && !netgame)) && gamestate != GS_LEVEL)
     return;
 
   // do main actions
@@ -1212,7 +1212,7 @@ void G_Ticker (void)
       break;
 
     case GS_INTERMISSION:
-       WI_Ticker ();
+        WI_Ticker ();
       break;
 
     case GS_FINALE:
