@@ -324,10 +324,15 @@ while (SDL_PollEvent(Event))
       event.data2 = Event->motion.xrel << 4;
       event.data3 = -Event->motion.yrel << 4;
 
-      //lprintf(LO_ERROR, "mouse movement: %i %i %i \n", event.data2, event.data3, ignored_first_mouse_input);
-      if (ignored_first_mouse_input == 0 && gametic > 1 && (D_abs(event.data2) || D_abs(event.data3)))
-        ignored_first_mouse_input = 1;
-      else if (ignored_first_mouse_input == 1)
+      if (mouse_ignore_first)
+      {
+        //lprintf(LO_ERROR, "mouse movement: %i %i %i \n", event.data2, event.data3, ignored_first_mouse_input);
+        if (ignored_first_mouse_input == 0 && gametic > 1 && (D_abs(event.data2) || D_abs(event.data3)))
+          ignored_first_mouse_input = 1;
+        else if (ignored_first_mouse_input == 1)
+          D_PostEvent(&event);
+      }
+      else
         D_PostEvent(&event);
     }
     break;

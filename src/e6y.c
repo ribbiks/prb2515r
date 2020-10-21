@@ -137,6 +137,8 @@ int movement_mouseinvert;
 int movement_maxviewpitch;
 int mouse_handler;
 int mouse_doubleclick_as_use;
+int mouse_carrytics;
+int mouse_ignore_first;
 int render_fov = 90;
 int render_multisampling;
 int render_paperitems;

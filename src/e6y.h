@@ -125,6 +125,8 @@ extern int movement_mouseinvert;
 extern int movement_maxviewpitch;
 extern int mouse_handler;
 extern int mouse_doubleclick_as_use;
+extern int mouse_carrytics;
+extern int mouse_ignore_first;
 extern int render_multisampling;
 extern int render_paperitems;
 extern int render_wipescreen;

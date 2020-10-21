@@ -729,7 +729,21 @@ void G_BuildTiccmd(ticcmd_t* cmd)
 
   cmd->forwardmove += fudgef((signed char)forward);
   cmd->sidemove += side;
-  cmd->angleturn = fudgea(cmd->angleturn);
+
+  if ((demorecording && !longtics) || shorttics)
+  {
+    // Chocolate Doom Mouse Behaviour
+    // Don't discard mouse delta even if value is too small to
+    // turn the player this tic
+    if (mouse_carrytics)
+    {
+      static signed short carry = 0;
+      signed short desired_angleturn = cmd->angleturn + carry;
+      cmd->angleturn = (desired_angleturn + 128) & 0xff00;
+      carry = desired_angleturn - cmd->angleturn;
+    }
+    cmd->angleturn = (((cmd->angleturn + 128) >> 8) << 8);
+  }
 
   upmove = 0;
   if (gamekeydown[key_flyup])
