@@ -143,6 +143,8 @@ dboolean         democontinue = false;
 char             democontinuename[PATH_MAX];
 int             demover;
 dboolean         singledemo;           // quit after playing a demo from cmdline
+int             from_restart = 0;
+int             init_rng;
 wbstartstruct_t wminfo;               // parms for world map / intermission
 dboolean         haswolflevels = false;// jff 4/18/98 wolf levels present
 static byte     *savebuffer;          // CPhipps - static
@@ -2393,13 +2395,16 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
   gameaction = ga_newgame;
 
   // [crispy] if a new game is started during demo recording, start a new demo
+  from_restart = 0;
   if (demorecording)
   {
+    from_restart = 1;
     // [crispy] reset IDDT cheat when re-starting map during demo recording
     AM_ResetIDDTcheat();
     AM_clearMarks();
     G_CheckDemoStatus();
     G_RecordDemo(orig_demoname);
+    G_ReloadDefaults(); // need to call reloaddefaults before beginrecording -rbk
     G_BeginRecording();
   }
 }
@@ -2600,7 +2605,15 @@ void G_ReloadDefaults(void)
   // killough 3/31/98, 4/5/98: demo sync insurance
   demo_insurance = default_demo_insurance == 1;
 
-  rngseed += I_GetRandomTimeSeed() + gametic; // CPhipps
+  //lprintf(LO_ERROR, "OLD RNGSEED: %i \n", rngseed);
+  if (from_restart == 1)
+    rngseed = init_rng;
+  else
+  {
+    rngseed += I_GetRandomTimeSeed() + gametic; // CPhipps
+    init_rng = rngseed;
+  }
+  //lprintf(LO_ERROR, "NEW RNGSEED: %i \n", rngseed);
 }
 
 void G_DoNewGame (void)
@@ -2608,7 +2621,8 @@ void G_DoNewGame (void)
   // e6y: allow new level's music to be loaded
   idmusnum = -1;
 
-  G_ReloadDefaults();            // killough 3/1/98
+  if (from_restart != 1)
+    G_ReloadDefaults();            // killough 3/1/98
   netgame = false;               // killough 3/29/98
   deathmatch = false;
   G_InitNew (d_skill, d_episode, d_map);
@@ -3192,9 +3206,18 @@ void G_BeginRecording (void)
      * cph - FIXME? MBF demos will always be not in compat. mode */
     *demo_p++ = 0;
 
-    *demo_p++ = gameskill;
-    *demo_p++ = gameepisode;
-    *demo_p++ = gamemap;
+    if (from_restart == 1)
+    {
+      *demo_p++ = d_skill;
+      *demo_p++ = d_episode;
+      *demo_p++ = d_map;
+    }
+    else
+    {
+      *demo_p++ = gameskill;
+      *demo_p++ = gameepisode;
+      *demo_p++ = gamemap;
+    }
     *demo_p++ = deathmatch;
     *demo_p++ = consoleplayer;
 
@@ -3232,9 +3255,18 @@ void G_BeginRecording (void)
     /* CPhipps - save compatibility level in demos */
     *demo_p++ = c;
 
-    *demo_p++ = gameskill;
-    *demo_p++ = gameepisode;
-    *demo_p++ = gamemap;
+    if (from_restart == 1)
+    {
+      *demo_p++ = d_skill;
+      *demo_p++ = d_episode;
+      *demo_p++ = d_map;
+    }
+    else
+    {
+      *demo_p++ = gameskill;
+      *demo_p++ = gameepisode;
+      *demo_p++ = gamemap;
+    }
     *demo_p++ = deathmatch;
     *demo_p++ = consoleplayer;
 
@@ -3269,9 +3301,18 @@ void G_BeginRecording (void)
       }
     }
     *demo_p++ = v;
-    *demo_p++ = gameskill;
-    *demo_p++ = gameepisode;
-    *demo_p++ = gamemap;
+    if (from_restart == 1)
+    {
+      *demo_p++ = d_skill;
+      *demo_p++ = d_episode;
+      *demo_p++ = d_map;
+    }
+    else
+    {
+      *demo_p++ = gameskill;
+      *demo_p++ = gameepisode;
+      *demo_p++ = gamemap;
+    }
     *demo_p++ = deathmatch;
     *demo_p++ = respawnparm;
     *demo_p++ = fastparm;
