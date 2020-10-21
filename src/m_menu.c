@@ -677,6 +677,10 @@ static void M_VerifyNightmare(int ch)
   if (ch != 'y')
     return;
 
+  // lovey: Print to levelstat if a new game is started during gameplay
+  if (gamestate == GS_LEVEL)
+    e6y_UpdateStats();
+
   G_DeferedInitNew(nightmare,epi+1,1);
   M_ClearMenus ();
 }
@@ -688,6 +692,10 @@ void M_ChooseSkill(int choice)
       M_StartMessage(s_NIGHTMARE,M_VerifyNightmare,true);
       return;
     }
+
+  // lovey: Print to levelstat if a new game is started during gameplay
+  if (gamestate == GS_LEVEL)
+    e6y_UpdateStats();
 
   G_DeferedInitNew(choice,epi+1,1);
   M_ClearMenus ();
@@ -783,6 +791,10 @@ void M_LoadSelect(int choice)
 {
   // CPhipps - Modified so savegame filename is worked out only internal
   //  to g_game.c, this only passes the slot.
+
+  // lovey: Print to levelstat if a game is loaded during gameplay
+  if (gamestate == GS_LEVEL)
+    e6y_UpdateStats();
 
   G_LoadGame(choice, false); // killough 3/16/98, 5/15/98: add slot, cmd
 
@@ -1412,6 +1424,10 @@ static void M_EndGameResponse(int ch)
   // killough 5/26/98: make endgame quit if recording or playing back demo
   if (demorecording || singledemo)
     G_CheckDemoStatus();
+
+  // lovey: If in game, print to levelstat.txt when the level ends
+  if (gamestate == GS_LEVEL)
+    e6y_UpdateStats();
 
   currentMenu->lastOn = itemOn;
   M_ClearMenus ();

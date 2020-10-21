@@ -1477,7 +1477,10 @@ void G_DeathMatchSpawnPlayer (int playernum)
 void G_DoReborn (int playernum)
 {
   if (!netgame)
+  {
     gameaction = ga_loadlevel;      // reload the level from scratch
+    e6y_UpdateStats();              // lovey: Print to levelstat.txt after respawning
+  }
   else
     {                               // respawn at the start
       int i;

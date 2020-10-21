@@ -293,6 +293,7 @@ extern int stats_level;
 extern int stroller;
 void e6y_G_DoCompleted(void);
 void e6y_WriteStats(void);
+void e6y_UpdateStats(void); // lovey: Updates levelstat.txt with current stats
 
 void e6y_G_DoWorldDone(void);
 

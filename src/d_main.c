@@ -1968,6 +1968,18 @@ static void D_DoomMainSetup(void)
   M_ChangeUncappedFrameRate();
 }
 
+// lovey: Call this function at exit to check if we're quitting during a level,
+//        if so, write to levelstat.txt
+
+//
+// D_PrintLevelstat
+//
+
+static void D_PrintLevelstat(void) {
+  if (gamestate == GS_LEVEL)
+    e6y_UpdateStats();
+}
+
 //
 // D_DoomMain
 //
@@ -1975,6 +1987,7 @@ static void D_DoomMainSetup(void)
 void D_DoomMain(void)
 {
   D_DoomMainSetup(); // CPhipps - setup out of main execution stack
+  atexit(D_PrintLevelstat); // lovey: print levelstat at exit, if we're in a level
 
   D_DoomLoop ();  // never returns
 }

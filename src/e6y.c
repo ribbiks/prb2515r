@@ -973,6 +973,53 @@ void e6y_WriteStats(void)
   fclose(f);
 }
 
+// lovey: Updates levelstat.txt with current stats
+//        Just e6y_G_DoCompleted without the unnecessary stuff,
+//        and with a modification to TT_TOTALTIME
+void e6y_UpdateStats(void) {
+  int i;
+  
+  if(!stats_level)
+    return;
+
+  if (numlevels >= levels_max)
+  {
+    levels_max = levels_max ? levels_max*2 : 32;
+    stats = realloc(stats,sizeof(*stats)*levels_max);
+  }
+
+  memset(&stats[numlevels], 0, sizeof(timetable_t));
+
+  if (gamemode==commercial)
+    sprintf(stats[numlevels].map,"MAP%02i",gamemap);
+  else
+    sprintf(stats[numlevels].map,"E%iM%i",gameepisode,gamemap);
+
+  stats[numlevels].stat[TT_TIME]        = leveltime;
+  stats[numlevels].stat[TT_TOTALTIME]   = totalleveltimes + leveltime - leveltime%TICRATE;
+  stats[numlevels].stat[TT_TOTALKILL]   = totalkills;
+  stats[numlevels].stat[TT_TOTALITEM]   = totalitems;
+  stats[numlevels].stat[TT_TOTALSECRET] = totalsecret;
+
+  for (i=0 ; i<MAXPLAYERS ; i++)
+  {
+    if (playeringame[i])
+    {
+      stats[numlevels].kill[i]   = players[i].killcount - players[i].resurectedkillcount;
+      stats[numlevels].item[i]   = players[i].itemcount;
+      stats[numlevels].secret[i] = players[i].secretcount;
+      
+      stats[numlevels].stat[TT_ALLKILL]   += stats[numlevels].kill[i];
+      stats[numlevels].stat[TT_ALLITEM]   += stats[numlevels].item[i];
+      stats[numlevels].stat[TT_ALLSECRET] += stats[numlevels].secret[i];
+    }
+  }
+
+  numlevels++;
+
+  e6y_WriteStats();
+}
+
 void e6y_G_DoWorldDone(void)
 {
   if (doSkip)
