@@ -144,7 +144,7 @@ char             democontinuename[PATH_MAX];
 int             demover;
 dboolean         singledemo;           // quit after playing a demo from cmdline
 int             from_restart = 0;
-int             init_rng;
+int             init_rng = -1;
 wbstartstruct_t wminfo;               // parms for world map / intermission
 dboolean         haswolflevels = false;// jff 4/18/98 wolf levels present
 static byte     *savebuffer;          // CPhipps - static
@@ -2404,7 +2404,9 @@ void G_DeferedInitNew(skill_t skill, int episode, int map)
     AM_clearMarks();
     G_CheckDemoStatus();
     G_RecordDemo(orig_demoname);
-    G_ReloadDefaults(); // need to call reloaddefaults before beginrecording -rbk
+    // set some stuff to keep demo sync. This is messy... -rbk
+    rngseed = init_rng;
+    basetic = gametic;
     G_BeginRecording();
   }
 }
@@ -2605,15 +2607,10 @@ void G_ReloadDefaults(void)
   // killough 3/31/98, 4/5/98: demo sync insurance
   demo_insurance = default_demo_insurance == 1;
 
-  //lprintf(LO_ERROR, "OLD RNGSEED: %i \n", rngseed);
-  if (from_restart == 1)
-    rngseed = init_rng;
-  else
-  {
-    rngseed += I_GetRandomTimeSeed() + gametic; // CPhipps
+  rngseed += I_GetRandomTimeSeed() + gametic; // CPhipps
+  if (init_rng == -1)
     init_rng = rngseed;
-  }
-  //lprintf(LO_ERROR, "NEW RNGSEED: %i \n", rngseed);
+
 }
 
 void G_DoNewGame (void)
